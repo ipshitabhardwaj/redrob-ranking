@@ -1,0 +1,8 @@
+# .gitignore mein yeh add karo
+data/candidates.jsonl
+data/job_description.docx
+data/processed/
+indexes/
+__pycache__/
+*.pyc
+*.npy

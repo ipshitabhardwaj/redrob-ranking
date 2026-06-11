@@ -1,0 +1,13 @@
+# Dataset — don't push
+data/candidates.jsonl
+data/job_description.docx
+
+# Generated files — don't push
+data/processed/
+indexes/
+__pycache__/
+*.pyc
+*.npy
+
+# Submission output
+submission/team_submission.csv
