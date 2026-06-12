@@ -23,18 +23,11 @@ RESEARCH_ONLY_KEYWORDS = [
     "thesis", "arxiv", "iit research", "research intern"
 ]
 
-HONEYPOT_JD_KEYWORDS = [
-    "senior ai engineer", "founding team", "production ml",
-    "vector database", "ranking", "retrieval", "recommendation",
-    "llm", "rag", "mlops", "search", "reranking", "embedding"
-]
-
 BAD_TITLES = [
     "hr manager", "content writer", "accountant",
     "graphic designer", "sales executive", "marketing manager",
     "mechanical engineer", "civil engineer", "customer support"
 ]
-
 
 # ---------------------------------------------------------------------------
 # Helper Functions
@@ -45,8 +38,10 @@ def days_since(date_str):
     if not date_str:
         return 999
     try:
+        # Reference date set to June 12, 2026 to align with dataset timeline
         d = datetime.strptime(date_str[:10], "%Y-%m-%d")
-        return (datetime.utcnow() - d).days
+        ref = datetime(2026, 6, 12)
+        return (ref - d).days
     except:
         return 999
 
@@ -97,18 +92,75 @@ def is_research_only(c):
 
 def is_honeypot(c):
     """
-    Detect honeypot candidates — profiles that are suspiciously
-    stuffed with exact JD keywords but may not be genuine fits.
+    Detect honeypot candidates — synthetic profiles with logical timeline
+    contradictions or impossible skill duration claims.
     """
-    text = ""
-    text += (c.get("profile", {}).get("summary") or "").lower() + " "
-    text += (c.get("profile", {}).get("headline") or "").lower() + " "
-    for job in c.get("career_history", []):
-        text += (job.get("description") or "").lower() + " "
+    prof = c.get("profile", {})
+    career = c.get("career_history", [])
+    skills = c.get("skills", [])
+    
+    # 1. Total YoE mismatch
+    yoe = prof.get("years_of_experience", 0)
+    calculated_yoe = sum(job.get("duration_months", 0) for job in career) / 12.0
+    if abs(yoe - calculated_yoe) >= 1.0:
+        return True
+        
+    # 2. Expert skills with 0 months duration
+    expert_zero = sum(1 for s in skills if s.get("proficiency") == "expert" and s.get("duration_months") == 0)
+    if expert_zero >= 1:
+        return True
+        
+    return False
 
-    hits = sum(1 for kw in HONEYPOT_JD_KEYWORDS if kw in text)
-    return hits >= 6
 
+def is_bad_title(c):
+    """Filter out candidates in completely wrong domains (non-technical)."""
+    current_title = (c.get("profile", {}).get("current_title") or "").lower()
+    return any(t in current_title for t in BAD_TITLES)
+
+
+def location_score(c):
+    """ Noida/Pune target locations get 1.0. Tier-1 Indian relocation cities get 0.7 if willing to relocate. """
+    prof = c.get("profile", {})
+    loc = (prof.get("location") or "").lower()
+    willing_to_relocate = c.get("redrob_signals", {}).get("willing_to_relocate", False)
+    
+    if "noida" in loc or "pune" in loc:
+        return 1.0
+        
+    tier1_cities = ["bangalore", "bengaluru", "hyderabad", "mumbai", "delhi", "ncr", "gurgaon", "chennai"]
+    is_tier1 = any(city in loc for city in tier1_cities)
+    
+    if is_tier1 and willing_to_relocate:
+        return 0.7
+    elif is_tier1:
+        return 0.3
+    return 0.0
+
+
+def startup_fit_score(c):
+    """ Found founding or early stage experience in product companies. """
+    score = 0.0
+    career = c.get("career_history", [])
+    if not career:
+        return 0.0
+        
+    startup_sizes = ["1-10", "11-50", "51-200"]
+    startup_jobs = 0
+    founding_title = False
+    
+    for job in career:
+        if job.get("company_size") in startup_sizes:
+            startup_jobs += 1
+        title = (job.get("title") or "").lower()
+        if any(kw in title for kw in ["founding", "first", "co-founder", "lead engineer", "founding engineer"]):
+            founding_title = True
+            
+    score += min(startup_jobs / 2.0, 1.0) * 0.6
+    if founding_title:
+        score += 0.4
+        
+    return score
 
 # ---------------------------------------------------------------------------
 # Main Scoring Function
@@ -119,6 +171,10 @@ def score_candidate(c, semantic_score, weights):
     Compute a final relevance score for a candidate
     using a weighted combination of signals.
     """
+    # Quick filters
+    if is_honeypot(c) or is_bad_title(c):
+        return 0.0
+        
     score = 0.0
     signals = c.get("redrob_signals", {})
     profile  = c.get("profile", {})
@@ -172,6 +228,12 @@ def score_candidate(c, semantic_score, weights):
     # 8. Production ML experience depth
     score += production_ml_score(c) * weights["production_ml"]
 
+    # 9. Location fit
+    score += location_score(c) * weights["location"]
+
+    # 10. Startup fit
+    score += startup_fit_score(c) * weights["startup_fit"]
+
     # -----------------------------------------------------------------------
     # Penalties
     # -----------------------------------------------------------------------
@@ -184,13 +246,11 @@ def score_candidate(c, semantic_score, weights):
     if is_research_only(c):
         score -= 0.08
 
-    # Completely wrong domain (non-technical roles)
-    current_title = (profile.get("current_title") or "").lower()
-    if any(t in current_title for t in BAD_TITLES):
-        score -= 0.20
-
-    # Honeypot — abnormally high exact JD keyword density
-    if is_honeypot(c):
-        score -= 0.20
+    # Years of experience constraints (should ideally be 5-9 years as per JD)
+    yoe = profile.get("years_of_experience", 0)
+    if yoe < 4.0:
+        score -= 0.15
+    elif yoe > 12.0:
+        score -= 0.05
 
     return round(max(score, 0.0), 4)
