@@ -1,0 +1,58 @@
+# Redrob Hackathon - Submission Metadata
+# Team Identity
+team_name: "Data Dames"
+
+primary_contact:
+  name: "PLACEHOLDER_PRIMARY_CONTACT_NAME"
+  email: "PLACEHOLDER_PRIMARY_CONTACT_EMAIL"
+  phone: "PLACEHOLDER_PRIMARY_CONTACT_PHONE"
+
+team_members:
+  - name: "PLACEHOLDER_MEMBER_1_NAME"
+    email: "PLACEHOLDER_MEMBER_1_EMAIL"
+    role: "ML Engineer"
+  - name: "PLACEHOLDER_MEMBER_2_NAME"
+    email: "PLACEHOLDER_MEMBER_2_EMAIL"
+    role: "Data Lead"
+  - name: "PLACEHOLDER_MEMBER_3_NAME"
+    email: "PLACEHOLDER_MEMBER_3_EMAIL"
+    role: "Evaluation Lead"
+  - name: "PLACEHOLDER_MEMBER_4_NAME"
+    email: "PLACEHOLDER_MEMBER_4_EMAIL"
+    role: "Systems Lead"
+
+# Code and reproducibility
+github_repo: "https://github.com/ipshitabhardwaj/redrob-ranking"
+sandbox_link: "PLACEHOLDER_SANDBOX_LINK"
+reproduce_command: "python -m src.pipeline"
+
+# Compute environment
+compute:
+  platform: "Local CPU Machine"
+  cpu_cores: 2
+  ram_gb: 16
+  python_version: "3.14.5"
+  os: "Windows"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 5
+
+# AI tools declaration
+ai_tools_used:
+  - "Gemini"
+
+ai_usage_summary: |
+  Used Gemini for codebase research, architectural design, honeypot pattern profiling, and code refactoring. All final scoring heuristics and filtering logic were validated locally on CPU.
+
+# Approach summary
+methodology_summary: |
+  A two-stage candidate ranking system built for CPU efficiency. Stage 1 utilizes a concise candidate profile text builder (current title, headline, and top 5 skills) encoded with all-MiniLM-L6-v2 and indexed in a FAISS HNSW index to retrieve the top 500 candidates. Stage 2 executes a multi-signal reranking formula that filters out non-technical titles and 70 mathematically proven honeypot profiles, scoring the remaining candidates on location fit, startup and founding history, notice period length, and production ML depth.
+
+# Declarations
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
