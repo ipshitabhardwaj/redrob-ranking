@@ -50,6 +50,67 @@ def run_offline(candidates, model):
     print("--- OFFLINE STEP COMPLETE ---\n")
 
 
+def generate_reasoning(c, score):
+    """Generate a custom, factual reasoning string for the candidate."""
+    p = c.get("profile", {})
+    signals = c.get("redrob_signals", {})
+    yoe = p.get("years_of_experience", 0)
+    title = p.get("current_title", "Engineer")
+    company = p.get("current_company", "N/A")
+    
+    # Target skills
+    skills = [s["name"] for s in c.get("skills", []) if s.get("name")]
+    key_skills = []
+    target_skills = ["nlp", "embeddings", "rag", "llm", "vector", "search", "retrieval", "mlops", "pinecone", "milvus", "qdrant", "weaviate", "faiss"]
+    for s in skills:
+        if any(ts in s.lower() for ts in target_skills):
+            key_skills.append(s)
+    key_skills = sorted(list(set(key_skills)))[:3]
+    skills_str = ", ".join(key_skills) if key_skills else "applied ML"
+    
+    # Location & Relocation
+    loc = (p.get("location") or "").lower()
+    willing = signals.get("willing_to_relocate", False)
+    
+    # Gaps / concerns detection
+    concerns = []
+    
+    # Location concern
+    if "noida" in loc or "pune" in loc:
+        loc_str = "Noida/Pune-based"
+    elif willing:
+        loc_str = "willing to relocate"
+        concerns.append(f"needs relocation from {p.get('location', 'N/A')}")
+    else:
+        loc_str = f"located in {p.get('location', 'N/A')}"
+        concerns.append(f"remote location ({p.get('location', 'N/A')})")
+        
+    # Notice period concern
+    notice = signals.get("notice_period_days", 90)
+    if notice <= 30:
+        notice_str = "short notice"
+    else:
+        notice_str = f"{notice}-day notice"
+        concerns.append(f"{notice}d notice period")
+        
+    # YoE concern
+    if yoe < 5.0:
+        concerns.append(f"lower experience ({yoe} yrs)")
+    elif yoe > 9.0:
+        concerns.append(f"higher experience ({yoe} yrs)")
+        
+    # Build sentences
+    main_fact = f"{title} with {yoe} years of experience at {company}, skilled in {skills_str}."
+    
+    if concerns:
+        concern_str = "Note: " + ", ".join(concerns) + "."
+        reasoning = f"{main_fact} {loc_str.capitalize()} and {notice_str}. {concern_str}"
+    else:
+        reasoning = f"{main_fact} {loc_str.capitalize()} and {notice_str}. Excellent match for the founding team."
+        
+    return reasoning
+
+
 def run_online(candidates, model):
     """
     Timed ranking step — must complete within 5 minutes.
@@ -73,22 +134,38 @@ def run_online(candidates, model):
     for cid, sem_score in zip(top_ids, top_scores):
         c = cand_map.get(cid)
         if c:
-            results.append({
-                "candidate_id": cid,
-                "score": score_candidate(c, sem_score, WEIGHTS)
-            })
+            score = score_candidate(c, sem_score, WEIGHTS)
+            if score > 0.0:
+                results.append({
+                    "candidate_id": cid,
+                    "score": score,
+                    "raw_candidate": c
+                })
 
-    results.sort(key=lambda x: x["score"], reverse=True)
+    # Deterministic tie-breaking: score descending, candidate_id ascending
+    results.sort(key=lambda x: (-x["score"], x["candidate_id"]))
     top_100 = results[:100]
 
-    os.makedirs("submission", exist_ok=True)
-    df = pd.DataFrame(top_100)
+    # format output list with rank and reasoning
+    output_rows = []
+    for rank_idx, item in enumerate(top_100, 1):
+        c = item["raw_candidate"]
+        reasoning = generate_reasoning(c, item["score"])
+        output_rows.append({
+            "candidate_id": item["candidate_id"],
+            "rank": rank_idx,
+            "score": item["score"],
+            "reasoning": reasoning
+        })
+
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    df = pd.DataFrame(output_rows)
     df.to_csv(OUTPUT_PATH, index=False)
     print(f"Submission saved: {OUTPUT_PATH}")
     print(f"Scored {len(results)} candidates — top 100 written")
     print("--- ONLINE STEP COMPLETE ---\n")
 
-    return top_100
+    return output_rows
 
 
 def print_top_10(top_100, cand_map):

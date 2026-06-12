@@ -25,12 +25,14 @@ RETRIEVAL_K = 500
 
 # --- Scoring Weights ---
 WEIGHTS = {
-    "semantic":             0.35,
+    "semantic":             0.30,
     "response_rate":        0.10,
-    "open_to_work":         0.12,
-    "recency":              0.12,
+    "open_to_work":         0.10,
+    "recency":              0.10,
     "github_activity":      0.08,
-    "profile_completeness": 0.07,
-    "notice_period":        0.06,
+    "profile_completeness": 0.05,
+    "notice_period":        0.07,
     "production_ml":        0.10,
+    "location":             0.05,
+    "startup_fit":          0.05,
 }
