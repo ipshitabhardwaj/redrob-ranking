@@ -40,6 +40,8 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 
 def load_model():
     print("Loading embedding model...")
+    import torch
+    torch.set_num_threads(1)
     return SentenceTransformer(MODEL_NAME)
 
 
@@ -48,7 +50,7 @@ def build_embeddings(texts, model,
     print(f"Building embeddings for {len(texts)} candidates...")
     embeddings = model.encode(
         texts,
-        batch_size=256,
+        batch_size=32,
         show_progress_bar=True,
         convert_to_numpy=True
     ).astype("float32")
