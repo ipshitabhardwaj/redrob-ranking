@@ -68,12 +68,12 @@ def load_embeddings(path="data/processed/embeddings.npy"):
 
 def build_faiss_index(embeddings,
                       save_path="indexes/faiss_hnsw.index"):
-    print("Building FAISS HNSW index...")
+    print("Building FAISS Flat IP index...")
     emb = embeddings.copy()
     faiss.normalize_L2(emb)
 
     dimension = emb.shape[1]
-    index = faiss.IndexHNSWFlat(dimension, 32)
+    index = faiss.IndexFlatIP(dimension)
     index.add(emb)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
