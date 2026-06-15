@@ -5,3 +5,4 @@ numpy
 scikit-learn
 jupyter
 python-docx
+torch
