@@ -16,7 +16,7 @@ Team Members:
 The ranking engine is designed as a high-performance, two-stage retrieval and ranking pipeline optimized for CPU execution.
 
 1. Stage 1: Retrieval (FAISS Dense HNSW Index)
-   * A concise candidate profile representation is constructed from the candidate's current title, headline, and top 5 skills.
+   * A candidate profile representation is constructed from the candidate's current title, headline, summary, most recent job description, and top skills.
    * Profiles are encoded into 384-dimensional dense vectors using the all-MiniLM-L6-v2 SentenceTransformer.
    * A FAISS IndexHNSWFlat structure is built offline to retrieve the top 500 semantically matching candidates under 30 seconds during online execution.
 
