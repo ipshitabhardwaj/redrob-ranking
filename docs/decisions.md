@@ -36,3 +36,8 @@ This document logs all key architectural decisions made by team Data Dames.
 - At 100k candidates x 384 dimensions, exact search via IndexFlatIP is fast enough on CPU and removes approximation error entirely (100% recall vs ~95% for HNSW).
 - Tradeoff accepted: slightly higher memory footprint for guaranteed recall.
 
+## JD Analysis (Full Text Received)
+- The job description includes an explicit section for hackathon participants describing the intended evaluation logic.
+- Confirmed: location scoring should treat Noida/Pune as preferred (1.0) but also welcome Hyderabad, Mumbai, Delhi NCR, Gurgaon, Chennai as acceptable (not just relocation-eligible).
+- Confirmed: notice period <= 30 days is the explicit target ("sub-30-day notice"), aligning with current scoring logic.
+- New disqualifier signals identified from JD text: LLM-wrapper-only profiles (recent LangChain/OpenAI projects without production ML depth), non-coding leadership titles (architect/tech lead with 18+ months in role), title-chasers (avg job tenure < 18 months across 4+ roles), and CV/speech/robotics-only profiles with no NLP/IR exposure.
