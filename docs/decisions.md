@@ -31,12 +31,12 @@ This document logs all key architectural decisions made by team Data Dames.
 - Fixed by setting torch.set_num_threads(os.cpu_count()) and increasing batch_size to 128 — reduced runtime to ~30-40 minutes for the one-time offline step.
 - This is a one-time cost. Embeddings and FAISS index are cached to disk and reused on all subsequent runs.
 
-## FAISS Index Choice
+## 6. FAISS Index Choice
 - Switched from IndexHNSWFlat to IndexFlatIP.
 - At 100k candidates x 384 dimensions, exact search via IndexFlatIP is fast enough on CPU and removes approximation error entirely (100% recall vs ~95% for HNSW).
 - Tradeoff accepted: slightly higher memory footprint for guaranteed recall.
 
-## JD Analysis (Full Text Received)
+## 7. JD Analysis (Full Text Received)
 - The job description includes an explicit section for hackathon participants describing the intended evaluation logic.
 - Confirmed: location scoring should treat Noida/Pune as preferred (1.0) but also welcome Hyderabad, Mumbai, Delhi NCR, Gurgaon, Chennai as acceptable (not just relocation-eligible).
 - Confirmed: notice period <= 30 days is the explicit target ("sub-30-day notice"), aligning with current scoring logic.
