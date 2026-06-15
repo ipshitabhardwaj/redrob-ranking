@@ -25,3 +25,14 @@ This document logs all key architectural decisions made by team Data Dames.
 *   **Context:** Testing on a 2-core CPU showed PyTorch's default thread pool setup led to OMP/OpenMP thread contention and thrashing, reducing candidate processing speeds.
 *   **Decision:** Force PyTorch thread pool size to 1 using `torch.set_num_threads(1)` and use a smaller batch size of 32 in the model configuration.
 *   **Consequence:** Removed thread synchronization overhead, doubling candidate embedding speed from 19.1 to 35.5 candidates/sec.
+
+## 5. Embedding Performance Tuning
+- Initial offline embedding run used batch_size=32 with torch single-threaded — estimated ~3 hours for 100k candidates. Too slow for iteration.
+- Fixed by setting torch.set_num_threads(os.cpu_count()) and increasing batch_size to 128 — reduced runtime to ~30-40 minutes for the one-time offline step.
+- This is a one-time cost. Embeddings and FAISS index are cached to disk and reused on all subsequent runs.
+
+## FAISS Index Choice
+- Switched from IndexHNSWFlat to IndexFlatIP.
+- At 100k candidates x 384 dimensions, exact search via IndexFlatIP is fast enough on CPU and removes approximation error entirely (100% recall vs ~95% for HNSW).
+- Tradeoff accepted: slightly higher memory footprint for guaranteed recall.
+
